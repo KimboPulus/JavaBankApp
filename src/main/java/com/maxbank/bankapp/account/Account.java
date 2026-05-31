@@ -39,6 +39,9 @@ public class Account {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean closed = false;
+
     protected Account() {
     }
 
@@ -91,5 +94,13 @@ public class Account {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public boolean isClosed() {
+        return closed;
+    }
+
+    public void setClosed(boolean closed) {
+        this.closed = closed;
     }
 }

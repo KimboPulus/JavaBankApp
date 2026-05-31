@@ -6,14 +6,16 @@ public record AccountResponse(
         String accountNumber,
         BigDecimal balance,
         CurrencyCode currency,
-        AccountType accountType
+        AccountType accountType,
+        boolean closed
 ) {
     public static AccountResponse from(Account account) {
         return new AccountResponse(
                 account.getAccountNumber(),
                 account.getBalance(),
                 account.getCurrency(),
-                account.getAccountType()
+                account.getAccountType(),
+                account.isClosed()
         );
     }
 }

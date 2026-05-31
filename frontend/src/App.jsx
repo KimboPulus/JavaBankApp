@@ -71,13 +71,22 @@ export default function App() {
   }, [session]);
 
   useEffect(() => {
-    if (primaryAccount && !transfer.senderAccountNumber) {
+    const senderStillExists = accounts.some(
+      (account) => account.accountNumber === transfer.senderAccountNumber
+    );
+
+    if (primaryAccount && (!transfer.senderAccountNumber || !senderStillExists)) {
       setTransfer((current) => ({
         ...current,
         senderAccountNumber: primaryAccount.accountNumber
       }));
+    } else if (!primaryAccount && transfer.senderAccountNumber) {
+      setTransfer((current) => ({
+        ...current,
+        senderAccountNumber: ""
+      }));
     }
-  }, [primaryAccount, transfer.senderAccountNumber]);
+  }, [accounts, primaryAccount, transfer.senderAccountNumber]);
 
   async function loadAccounts(token = session?.token) {
     if (!token) {
@@ -159,6 +168,37 @@ export default function App() {
       );
       await loadAccounts();
       setMessage(`New ${account.accountType.toLowerCase()} account opened.`);
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function closeAccount(account) {
+    if (Number(account.balance) !== 0) {
+      setMessage("Move the money out before closing this account.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Close account ${account.accountNumber}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      await api(
+        `/api/accounts/${encodeURIComponent(account.accountNumber)}`,
+        {
+          method: "DELETE"
+        },
+        session.token
+      );
+      await loadAccounts();
+      setMessage("Account closed.");
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -270,7 +310,21 @@ export default function App() {
                     <p>{account.accountType.toLowerCase()}</p>
                     <strong>{money(account.balance, account.currency)}</strong>
                   </div>
-                  <span>{account.accountNumber}</span>
+                  <div className="account-actions">
+                    <span>{account.accountNumber}</span>
+                    <button
+                      className="danger"
+                      onClick={() => closeAccount(account)}
+                      disabled={busy || Number(account.balance) !== 0}
+                      title={
+                        Number(account.balance) === 0
+                          ? "Close this account"
+                          : "Move the money out before closing"
+                      }
+                    >
+                      Close
+                    </button>
+                  </div>
                 </article>
               ))}
             </div>

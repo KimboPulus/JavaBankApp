@@ -13,9 +13,11 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     boolean existsByAccountNumber(String accountNumber);
 
-    List<Account> findByUserUsernameIgnoreCaseOrderByAccountNumber(String username);
+    List<Account> findByUserUsernameIgnoreCaseAndClosedFalseOrderByAccountNumber(String username);
+
+    Optional<Account> findByAccountNumberAndUserUsernameIgnoreCase(String accountNumber, String username);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select a from Account a join fetch a.user where a.accountNumber = :accountNumber")
+    @Query("select a from Account a join fetch a.user where a.accountNumber = :accountNumber and a.closed = false")
     Optional<Account> findLockedByAccountNumber(@Param("accountNumber") String accountNumber);
 }

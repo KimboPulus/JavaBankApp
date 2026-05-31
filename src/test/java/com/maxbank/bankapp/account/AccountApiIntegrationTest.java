@@ -1,6 +1,7 @@
 package com.maxbank.bankapp.account;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -29,10 +30,72 @@ class AccountApiIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Test
-    void loggedInUserCanOpenAnotherBankAccount() throws Exception {
+    void loggedInUserCanOpenAnotherBankAccountFromApi() throws Exception {
         String token = register("accountowner", "accountowner@example.com");
 
-        CreateAccountRequest request = new CreateAccountRequest(CurrencyCode.EUR, AccountType.SAVINGS);
+        AccountResponse created = openAccount(token, CurrencyCode.EUR, AccountType.SAVINGS);
+        List<AccountResponse> accounts = accounts(token);
+
+        assertThat(created.accountNumber()).startsWith("PL");
+        assertThat(created.balance()).isZero();
+        assertThat(created.currency()).isEqualTo(CurrencyCode.EUR);
+        assertThat(created.accountType()).isEqualTo(AccountType.SAVINGS);
+        assertThat(created.closed()).isFalse();
+        assertThat(accounts).hasSize(2);
+        assertThat(accounts).extracting(AccountResponse::accountNumber).contains(created.accountNumber());
+    }
+
+    @Test
+    void anonymousUserCannotOpenBankAccount() throws Exception {
+        CreateAccountRequest request = new CreateAccountRequest(CurrencyCode.PLN, AccountType.CHECKING);
+
+        mockMvc.perform(post("/api/accounts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void userCanCloseEmptyBankAccount() throws Exception {
+        String token = register("closer", "closer@example.com");
+        AccountResponse account = openAccount(token, CurrencyCode.USD, AccountType.SAVINGS);
+
+        mockMvc.perform(delete("/api/accounts/{accountNumber}", account.accountNumber())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNoContent());
+
+        List<AccountResponse> accounts = accounts(token);
+        assertThat(accounts).hasSize(1);
+        assertThat(accounts).extracting(AccountResponse::accountNumber).doesNotContain(account.accountNumber());
+    }
+
+    @Test
+    void userCannotCloseAccountWithMoneyStillInIt() throws Exception {
+        String token = register("balanceowner", "balanceowner@example.com");
+        AccountResponse firstAccount = accounts(token).get(0);
+
+        mockMvc.perform(delete("/api/accounts/{accountNumber}", firstAccount.accountNumber())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest());
+
+        assertThat(accounts(token)).hasSize(1);
+    }
+
+    @Test
+    void userCannotCloseSomeoneElsesBankAccount() throws Exception {
+        String ownerToken = register("realowner", "realowner@example.com");
+        String otherToken = register("otherowner", "otherowner@example.com");
+        AccountResponse account = openAccount(ownerToken, CurrencyCode.GBP, AccountType.CHECKING);
+
+        mockMvc.perform(delete("/api/accounts/{accountNumber}", account.accountNumber())
+                        .header("Authorization", "Bearer " + otherToken))
+                .andExpect(status().isNotFound());
+
+        assertThat(accounts(ownerToken)).extracting(AccountResponse::accountNumber).contains(account.accountNumber());
+    }
+
+    private AccountResponse openAccount(String token, CurrencyCode currency, AccountType accountType) throws Exception {
+        CreateAccountRequest request = new CreateAccountRequest(currency, accountType);
         String createdBody = mockMvc.perform(post("/api/accounts")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -41,16 +104,7 @@ class AccountApiIntegrationTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
-
-        AccountResponse created = objectMapper.readValue(createdBody, AccountResponse.class);
-        List<AccountResponse> accounts = accounts(token);
-
-        assertThat(created.accountNumber()).startsWith("PL");
-        assertThat(created.balance()).isZero();
-        assertThat(created.currency()).isEqualTo(CurrencyCode.EUR);
-        assertThat(created.accountType()).isEqualTo(AccountType.SAVINGS);
-        assertThat(accounts).hasSize(2);
-        assertThat(accounts).extracting(AccountResponse::accountNumber).contains(created.accountNumber());
+        return objectMapper.readValue(createdBody, AccountResponse.class);
     }
 
     private String register(String username, String email) throws Exception {

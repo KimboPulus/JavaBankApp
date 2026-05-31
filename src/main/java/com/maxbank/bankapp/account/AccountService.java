@@ -35,6 +35,21 @@ public class AccountService {
         return AccountResponse.from(saved);
     }
 
+    @Transactional
+    public void closeAccount(String username, String accountNumber) {
+        Account account = accountRepository.findByAccountNumberAndUserUsernameIgnoreCase(accountNumber, username)
+                .orElseThrow(() -> new EntityNotFoundException("Account was not found."));
+
+        if (account.isClosed()) {
+            throw new IllegalArgumentException("This account is already closed.");
+        }
+        if (account.getBalance().compareTo(BigDecimal.ZERO) != 0) {
+            throw new IllegalArgumentException("Move the money out before closing this account.");
+        }
+
+        account.setClosed(true);
+    }
+
     private String nextAccountNumber() {
         String accountNumber;
         do {
