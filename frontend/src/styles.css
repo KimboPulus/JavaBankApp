@@ -78,6 +78,11 @@ h2 {
   font-size: 1.2rem;
 }
 
+h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
 .muted {
   color: #66746d;
   line-height: 1.55;
@@ -237,6 +242,20 @@ select:focus {
   text-align: right;
 }
 
+.account-open-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  border-top: 1px solid #dce5d8;
+  padding-top: 18px;
+}
+
+.inline-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
 @media (max-width: 800px) {
   .dashboard {
     padding: 20px;
@@ -249,6 +268,10 @@ select:focus {
   }
 
   .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inline-fields {
     grid-template-columns: 1fr;
   }
 

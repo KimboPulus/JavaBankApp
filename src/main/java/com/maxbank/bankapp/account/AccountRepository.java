@@ -11,6 +11,8 @@ import org.springframework.data.repository.query.Param;
 public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findByAccountNumber(String accountNumber);
 
+    boolean existsByAccountNumber(String accountNumber);
+
     List<Account> findByUserUsernameIgnoreCaseOrderByAccountNumber(String username);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

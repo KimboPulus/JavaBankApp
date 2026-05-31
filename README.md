@@ -13,6 +13,7 @@ The project is split into two parts:
 - passwords are stored with BCrypt, not plain text
 - JWT token is used for protected API calls
 - logged-in user can see their own accounts
+- logged-in user can open another bank account from the dashboard
 - user can send a transfer from their own account
 - backend checks balance, amount, account numbers, owner, and currency
 - transfer is wrapped in a database transaction

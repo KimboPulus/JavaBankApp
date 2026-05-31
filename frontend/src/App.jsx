@@ -46,6 +46,10 @@ export default function App() {
     password: "password123"
   });
   const [accounts, setAccounts] = useState([]);
+  const [newAccount, setNewAccount] = useState({
+    accountType: "CHECKING",
+    currency: "PLN"
+  });
   const [transfer, setTransfer] = useState({
     senderAccountNumber: "",
     receiverAccountNumber: "",
@@ -100,7 +104,11 @@ export default function App() {
         body: JSON.stringify(payload)
       });
       setSession(data);
-      setMessage(mode === "login" ? "You are signed in." : "Account created. Your first account is ready.");
+      setMessage(
+        mode === "login"
+          ? "You are signed in."
+          : "Profile created. Your first bank account is ready."
+      );
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -128,6 +136,29 @@ export default function App() {
       setTransfer((current) => ({ ...current, receiverAccountNumber: "", amount: "" }));
       await loadAccounts();
       setMessage("Transfer sent.");
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitNewAccount(event) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const account = await api(
+        "/api/accounts",
+        {
+          method: "POST",
+          body: JSON.stringify(newAccount)
+        },
+        session.token
+      );
+      await loadAccounts();
+      setMessage(`New ${account.accountType.toLowerCase()} account opened.`);
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -244,6 +275,43 @@ export default function App() {
               ))}
             </div>
           )}
+
+          <form onSubmit={submitNewAccount} className="account-open-form">
+            <h3>Open a new bank account</h3>
+            <div className="inline-fields">
+              <label>
+                Type
+                <select
+                  value={newAccount.accountType}
+                  onChange={(event) =>
+                    setNewAccount({ ...newAccount, accountType: event.target.value })
+                  }
+                >
+                  <option value="CHECKING">Checking</option>
+                  <option value="SAVINGS">Savings</option>
+                </select>
+              </label>
+
+              <label>
+                Currency
+                <select
+                  value={newAccount.currency}
+                  onChange={(event) =>
+                    setNewAccount({ ...newAccount, currency: event.target.value })
+                  }
+                >
+                  <option value="PLN">PLN</option>
+                  <option value="EUR">EUR</option>
+                  <option value="USD">USD</option>
+                  <option value="GBP">GBP</option>
+                </select>
+              </label>
+            </div>
+
+            <button className="primary" disabled={busy}>
+              {busy ? "Opening..." : "Open account"}
+            </button>
+          </form>
         </div>
 
         <div className="panel">
@@ -260,7 +328,7 @@ export default function App() {
               >
                 {accounts.map((account) => (
                   <option key={account.accountNumber} value={account.accountNumber}>
-                    {account.accountNumber} · {money(account.balance, account.currency)}
+                    {account.accountNumber} - {money(account.balance, account.currency)}
                   </option>
                 ))}
               </select>

@@ -1,6 +1,7 @@
 package com.maxbank.bankapp.auth;
 
 import com.maxbank.bankapp.account.Account;
+import com.maxbank.bankapp.account.AccountRepository;
 import com.maxbank.bankapp.account.AccountType;
 import com.maxbank.bankapp.account.CurrencyCode;
 import com.maxbank.bankapp.security.JwtService;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AuthService {
     private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
@@ -26,11 +28,13 @@ public class AuthService {
 
     public AuthService(
             UserRepository userRepository,
+            AccountRepository accountRepository,
             PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager,
             JwtService jwtService
     ) {
         this.userRepository = userRepository;
+        this.accountRepository = accountRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
@@ -77,10 +81,14 @@ public class AuthService {
     }
 
     private String nextAccountNumber() {
-        StringBuilder value = new StringBuilder("PL");
-        for (int i = 0; i < 26; i++) {
-            value.append(random.nextInt(10));
-        }
-        return value.toString();
+        String accountNumber;
+        do {
+            StringBuilder value = new StringBuilder("PL");
+            for (int i = 0; i < 26; i++) {
+                value.append(random.nextInt(10));
+            }
+            accountNumber = value.toString();
+        } while (accountRepository.existsByAccountNumber(accountNumber));
+        return accountNumber;
     }
 }
