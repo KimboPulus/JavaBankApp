@@ -49,6 +49,14 @@ Open:
 http://127.0.0.1:5173
 ```
 
+## Screenshots
+
+This is how it looks when it is running locally.
+
+![Login screen](assets/screenshots/login.png)
+
+![Dashboard with accounts and transfers](assets/screenshots/dashboard.png)
+
 ## PostgreSQL setup
 
 The default backend config is prepared for PostgreSQL. Set env vars like this:
